@@ -33,6 +33,9 @@ public class FileManagerPanel extends JPanel {
         JButton btnImport = new JButton("Import File");
         JButton btnCreateNote = new JButton("Create Note");
         JButton btnOpen = new JButton("Open Selected");
+        JButton btnDelete = new JButton("Delete");
+        btnDelete.setBackground(new Color(231, 76, 60)); // Red for delete
+        btnDelete.setForeground(Color.WHITE);
 
         filterCombo = new JComboBox<>();
         filterCombo.addItem("All Subjects");
@@ -45,6 +48,7 @@ public class FileManagerPanel extends JPanel {
         topPanel.add(new JLabel("  |  Filter:"));
         topPanel.add(filterCombo);
         topPanel.add(btnOpen);
+        topPanel.add(btnDelete);
 
         this.add(topPanel, BorderLayout.NORTH);
 
@@ -114,11 +118,39 @@ public class FileManagerPanel extends JPanel {
         btnOpen.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row != -1) {
-                // Get the file path from the table model directly (since table might be filtered)
                 String filePath = (String) tableModel.getValueAt(row, 3);
                 fileManager.openFile(filePath);
             } else {
                 JOptionPane.showMessageDialog(this, "Please select a file to open.");
+            }
+        });
+
+        btnDelete.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row != -1) {
+                String filePath = (String) tableModel.getValueAt(row, 3);
+                int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this file?\nThis action cannot be undone.", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    File fileToDelete = new File(filePath).getAbsoluteFile();
+                    boolean deleted = false;
+                    if (fileToDelete.exists()) {
+                        deleted = fileToDelete.delete();
+                    } else {
+                        deleted = true; // If it doesn't exist on disk, we still want to remove from list
+                    }
+                    
+                    if (deleted) {
+                        fileRecords.removeIf(r -> r.getFilePath().equals(filePath));
+                        storageManager.saveItems("files.txt", fileRecords);
+                        updateFilterOptions();
+                        refreshTable();
+                        JOptionPane.showMessageDialog(this, "File permanently deleted from application folder.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Could not delete file. It might be currently open in another program.", "Delete Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Please select a file to delete.");
             }
         });
     }

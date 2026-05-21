@@ -61,6 +61,11 @@ public class TimetablePanel extends JPanel {
         JTextField txtTime = new JTextField(8);
         JTextField txtRoom = new JTextField(8);
         JButton btnAdd = new JButton("Add Class");
+        JButton btnEdit = new JButton("Edit");
+        JButton btnDelete = new JButton("Delete");
+        
+        btnDelete.setBackground(new Color(231, 76, 60)); // Red
+        btnDelete.setForeground(Color.WHITE);
 
         bottomPanel.add(new JLabel("Teacher:"));
         bottomPanel.add(txtTitle);
@@ -73,6 +78,8 @@ public class TimetablePanel extends JPanel {
         bottomPanel.add(new JLabel("Room:"));
         bottomPanel.add(txtRoom);
         bottomPanel.add(btnAdd);
+        bottomPanel.add(btnEdit);
+        bottomPanel.add(btnDelete);
 
         this.add(bottomPanel, BorderLayout.SOUTH);
         refreshTable();
@@ -107,6 +114,90 @@ public class TimetablePanel extends JPanel {
         });
 
         filterDayCombo.addActionListener(e -> refreshTable());
+
+        btnDelete.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row != -1) {
+                String subj = (String) tableModel.getValueAt(row, 0);
+                String title = (String) tableModel.getValueAt(row, 1);
+                String day = (String) tableModel.getValueAt(row, 2);
+                String time = (String) tableModel.getValueAt(row, 3);
+                
+                int confirm = JOptionPane.showConfirmDialog(this, "Delete this class?", "Confirm", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    lectures.removeIf(l -> l.getSubject().equals(subj) && l.getTitle().equals(title) && l.getScheduleTime().contains(day) && l.getScheduleTime().contains(time));
+                    storageManager.saveItems("lectures.txt", lectures);
+                    refreshTable();
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Please select a class to delete.");
+            }
+        });
+
+        btnEdit.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row != -1) {
+                String subj = (String) tableModel.getValueAt(row, 0);
+                String title = (String) tableModel.getValueAt(row, 1);
+                String day = (String) tableModel.getValueAt(row, 2);
+                String time = (String) tableModel.getValueAt(row, 3);
+                String room = (String) tableModel.getValueAt(row, 4);
+                
+                // Find index
+                int targetIndex = -1;
+                for (int i = 0; i < lectures.size(); i++) {
+                    Lecture l = lectures.get(i);
+                    if (l.getSubject().equals(subj) && l.getTitle().equals(title) && l.getScheduleTime().contains(day) && l.getScheduleTime().contains(time)) {
+                        targetIndex = i;
+                        break;
+                    }
+                }
+
+                if (targetIndex != -1) {
+                    showEditDialog(targetIndex, subj, title, day, time, room);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Please select a class to edit.");
+            }
+        });
+    }
+
+    private void showEditDialog(int index, String subj, String title, String day, String time, String room) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Edit Class", true);
+        dialog.setSize(300, 250);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new GridLayout(6, 2, 5, 5));
+
+        JTextField tSubj = new JTextField(subj);
+        JTextField tTitle = new JTextField(title);
+        JComboBox<String> cDay = new JComboBox<>(new String[] { "Mon", "Tue", "Wed", "Thu", "Fri" });
+        cDay.setSelectedItem(day);
+        JTextField tTime = new JTextField(time);
+        JTextField tRoom = new JTextField(room);
+
+        dialog.add(new JLabel(" Subject:")); dialog.add(tSubj);
+        dialog.add(new JLabel(" Teacher:")); dialog.add(tTitle);
+        dialog.add(new JLabel(" Day:")); dialog.add(cDay);
+        dialog.add(new JLabel(" Time (e.g. 8:30 - 10:00):")); dialog.add(tTime);
+        dialog.add(new JLabel(" Room:")); dialog.add(tRoom);
+
+        JButton btnSave = new JButton("Save Changes");
+        JButton btnCancel = new JButton("Cancel");
+
+        btnSave.addActionListener(ev -> {
+            // Update the object in place to preserve order
+            Lecture updated = new Lecture(tTitle.getText(), tSubj.getText(), cDay.getSelectedItem().toString(), tTime.getText(), tRoom.getText());
+            lectures.set(index, updated);
+            storageManager.saveItems("lectures.txt", lectures);
+            refreshTable();
+            dialog.dispose();
+        });
+
+        btnCancel.addActionListener(ev -> dialog.dispose());
+
+        dialog.add(btnSave);
+        dialog.add(btnCancel);
+        dialog.setVisible(true);
     }
 
     private void refreshTable() {
