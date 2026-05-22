@@ -216,7 +216,7 @@ public class ProductivityPanel extends JPanel {
         String[] columns = {"Date", "Subject", "Duration (Mins)"};
         DefaultTableModel model = new DefaultTableModel(columns, 0);
         for (StudySession s : sessions) {
-            model.addRow(new Object[]{s.getDate(), s.getSubject(), s.getDuration()});
+            model.addRow(new Object[]{s.getDate(), s.getSubject(), s.getDurationMinutes()});
         }
         
         JTable table = new JTable(model);
